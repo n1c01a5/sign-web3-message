@@ -1,8 +1,64 @@
+import { useCallback, useState } from 'react'
 import Head from 'next/head'
 import Image from 'next/image'
+
+import Web3 from 'web3'
+
 import styles from '../styles/Home.module.css'
 
 export default function Home() {
+  const [isConnectedWeb3, setIsConnectedWeb3] = useState(false)
+  const [value, setValue] = useState("")
+  const [encryptedMessage, setEncryptedMessage] = useState("")
+  const [message, setMessage] = useState("")
+  const [addressOfMessage, setAddressOfMessage] = useState("")
+  const [displayEncryptedMessage, setDisplayEncryptedMessage] = useState("")
+
+
+  // load page 
+  // 1. si window.ethereum
+  // 2. web.eth.net getId() == 1 => ethreum, id == 42 kovan
+
+  const connectToWeb3 = useCallback(
+    async () => {
+      if(window.ethereum) {
+        try {
+          await window.ethereum.request({method: 'eth_requestAccounts'})
+
+          setIsConnectedWeb3(true)
+        } catch (err) {
+          console.log(err)
+        }
+      } else {
+        alert("Install Metamask")
+      }
+    },
+  )
+
+  const signMessageWeb3 = useCallback(
+    async () => {
+      const web3 = new Web3(Web3.givenProvider)
+
+      const accounts = await web3.eth.getAccounts()
+
+      const encryptedMessage = await web3.eth.personal.sign(value, accounts[0])
+
+      setDisplayEncryptedMessage(encryptedMessage)
+
+    }, [value]
+  )
+
+  const recoverAddressOfMessage = useCallback(
+    async () => {
+      const web3 = new Web3(Web3.givenProvider)
+
+      const addressOfMessageSender = await web3.eth.accounts.recover(message, encryptedMessage)
+
+      setAddressOfMessage(addressOfMessageSender)
+
+    }, [encryptedMessage, message]
+  )
+
   return (
     <div className={styles.container}>
       <Head>
@@ -12,58 +68,25 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+        <h1>Sign Message Web3 App</h1>
+        <h2>Sign Message</h2>
+        {
+          isConnectedWeb3
+            ? <p>Connected</p>
+            : <button onClick={connectToWeb3}>Connect to web3</button>
+        }
+        <input type="text" onChange={e => setValue(e.target.value)} />
+        <button onClick={signMessageWeb3}>Sign Message</button>
+        <p>{displayEncryptedMessage}</p>
+        <h2>Recover Address form Encrypted Message</h2>
+        <label>Encrypted Message</label>
+        <input type="text" onChange={e => setEncryptedMessage(e.target.value)} />
+        <label>Message</label>
+        <input type="text" onChange={e => setMessage(e.target.value)} />
+        <button onClick={recoverAddressOfMessage}>Recover Address from Message</button>
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+        <p>{addressOfMessage}</p>
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
   )
 }
